@@ -1,0 +1,54 @@
+
+// ----- LOGS → LOKI (with processing) -----
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "containers" {
+  host    = "unix:///var/run/docker.sock"
+  targets = discovery.docker.containers.targets
+  labels  = { job = "docker" }
+  forward_to = [loki.process.pipeline.receiver]
+}
+
+loki.process "pipeline" {
+  forward_to = [loki.write.out.receiver]
+}
+
+loki.write "out" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+    headers = { "X-Scope-OrgID" = "demo-00" }
+  }
+}
+
+// ----- METRICS → MIMIR -----
+prometheus.scrape "stack" {
+  targets = [
+    { __address__ = "grafana:3000", job = "grafana" },
+    { __address__ = "loki:3100",    job = "loki"    },
+    { __address__ = "tempo:3200",   job = "tempo"   },
+    { __address__ = "mimir:9009",   job = "mimir"   },
+  ]
+  metrics_path    = "/metrics"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir:9009/api/v1/push"
+    headers = { "X-Scope-OrgID" = "demo-00" }
+  }
+}
+
+// ----- TRACES: accept OTLP → forward to Tempo -----
+otelcol.receiver.otlp "ingest" {
+  http { endpoint = "0.0.0.0:4318" }
+  grpc { endpoint = "0.0.0.0:4317" }
+  output { traces = [otelcol.exporter.otlphttp.to_tempo.input] }
+}
+
+otelcol.exporter.otlphttp "to_tempo" {
+  client { endpoint = "http://tempo:4318" }
+}

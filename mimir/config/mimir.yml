@@ -1,0 +1,36 @@
+server:
+  http_listen_port: 9009
+
+memberlist:
+  join_members: []   # single-node; no gossip peers
+
+distributor:
+  ring:
+    instance_addr: 0.0.0.0
+
+ingester:
+  ring:
+    instance_addr: 0.0.0.0
+    replication_factor: 1
+
+limits:
+  ingestion_rate: 200000
+  ingestion_burst_size: 200000
+  max_global_series_per_user: 5000000
+  max_fetched_series_per_query: 500000
+
+blocks_storage:
+  backend: filesystem
+  tsdb:
+    dir: /var/lib/mimir/tsdb
+  filesystem:
+    dir: /var/lib/mimir/blocks
+  bucket_store:
+    sync_dir: /tmp/mimir/bucket-store
+
+ruler:
+  rule_path: /tmp/mimir/rules
+  enable_api: true
+
+alertmanager:
+  data_dir: /tmp/mimir/alertmanager

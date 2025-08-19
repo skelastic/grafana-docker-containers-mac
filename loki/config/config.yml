@@ -1,0 +1,40 @@
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /var/loki
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+# TSDB storage (single-node, filesystem "object store")
+storage_config:
+  filesystem:
+    directory: /var/loki/tsdb   # acts as the local object store bucket
+  tsdb_shipper:
+    active_index_directory: /var/loki/tsdb-index
+    cache_location: /var/loki/tsdb-cache
+
+schema_config:
+  configs:
+    - from: 2025-08-19
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+# (TSDB supports structured metadata, so NO limits override needed)
+
+ruler:
+  rule_path: /tmp/loki/rules
+  storage:
+    type: local
+    local:
+      directory: /var/loki/rules
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true

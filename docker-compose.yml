@@ -1,0 +1,93 @@
+name: grafana-observability
+
+services:
+  grafana:
+    image: grafana/grafana-oss
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_SERVER_ROOT_URL: http://localhost:3000/
+      GF_SERVER_DOMAIN: localhost
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+      GF_SECURITY_COOKIE_SECURE: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - loki
+      - tempo
+      - mimir
+      - prometheus
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    command: ["-config.file=/etc/loki/config.yml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/config:/etc/loki:ro
+      - loki-data:/var/loki
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./tempo/config:/etc/tempo:ro
+      - tempo-data:/var/tempo
+
+  mimir:
+    image: grafana/mimir:latest
+    container_name: mimir
+    command: ["-target=all", "-config.file=/etc/mimir/mimir.yml"]
+    ports:
+      - "9009:9009"
+    volumes:
+      - ./mimir/config:/etc/mimir:ro
+      - mimir-data:/var/lib/mimir
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - mimir
+      - loki
+      - tempo
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    command: ["run", "/etc/alloy/config.alloy"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "12345:12345"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./alloy:/etc/alloy:ro
+    depends_on:
+      - loki
+      - tempo
+      - mimir
+
+volumes:
+  grafana-data:
+  loki-data:
+  tempo-data:
+  mimir-data:
+  prometheus-data:
