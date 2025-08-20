@@ -13,7 +13,7 @@
     { "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
     { "type": "datasource", "id": "tempo", "name": "Tempo", "version": "1.0.0" }
   ],
-  "title": "Obs \u203a Stack Overview",
+  "title": "Observability Stack Overview",
   "tags": ["observability", "mimir", "loki", "tempo", "alloy", "prometheus"],
   "schemaVersion": 39,
   "version": 1,
@@ -39,7 +39,7 @@
       "fieldConfig": { "defaults": { "unit": "ops", "decimals": 0 }, "overrides": [] },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
-        { "expr": "sum(rate(prometheus_remote_storage_samples_in_total[5m]))", "refId": "A" }
+        { "expr": "sum(rate(prometheus_remote_storage_samples_in_total[1m]))", "refId": "A" }
       ]
     },
     {
@@ -50,7 +50,7 @@
       "fieldConfig": { "defaults": { "unit": "ops", "decimals": 0 }, "overrides": [] },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
-        { "expr": "sum(rate(tempo_distributor_spans_received_total[5m]))", "refId": "A" }
+        { "expr": "sum(rate(tempo_distributor_spans_received_total[1m]))", "refId": "A" }
       ]
     },
     {
@@ -61,7 +61,7 @@
       "fieldConfig": { "defaults": { "unit": "ops", "decimals": 0 }, "overrides": [] },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
-        { "expr": "sum(rate(loki_distributor_lines_received_total[5m]))", "refId": "A" }
+        { "expr": "sum(rate(loki_distributor_lines_received_total[1m]))", "refId": "A" }
       ]
     },
     {
@@ -102,7 +102,7 @@
       "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2 } },
       "targets": [
         {
-          "expr": "sum(rate(prometheus_remote_storage_succeeded_samples_total[5m])) / clamp_min(sum(rate(prometheus_remote_storage_samples_in_total[5m])), 1)",
+          "expr": "sum(rate(prometheus_remote_storage_succeeded_samples_total[1m])) / clamp_min(sum(rate(prometheus_remote_storage_samples_in_total[1m])), 1)",
           "legendFormat": "success rate",
           "refId": "A"
         }
@@ -114,8 +114,8 @@
       "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
       "datasource": "${DS_PROM}",
       "targets": [
-        { "expr": "sum(rate(tempo_distributor_spans_received_total[5m]))", "legendFormat": "spans/s", "refId": "A" },
-        { "expr": "sum(rate(tempo_distributor_spans_failed_total[5m]))",   "legendFormat": "failed/s", "refId": "B" }
+        { "expr": "sum(rate(tempo_distributor_spans_received_total[1m]))", "legendFormat": "spans/s", "refId": "A" },
+        { "expr": "sum(rate(tempo_distributor_spans_failed_total[1m]))",   "legendFormat": "failed/s", "refId": "B" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" } }
     },

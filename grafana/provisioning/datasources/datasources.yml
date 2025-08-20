@@ -9,7 +9,7 @@ datasources:
     jsonData:
       httpHeaderName1: "X-Scope-OrgID"
     secureJsonData:
-      httpHeaderValue1: "demo-00"
+      httpHeaderValue1: "SnkrShop"
 
   - name: Loki
     type: loki
@@ -19,7 +19,7 @@ datasources:
     jsonData:
       httpHeaderName1: "X-Scope-OrgID"
     secureJsonData:
-      httpHeaderValue1: "demo-00"
+      httpHeaderValue1: "SnkrShop"
 
 
   - name: Tempo

@@ -1,42 +1,11 @@
-# grafana/provisioning/dashboards/dashboards.yml
 apiVersion: 1
 providers:
-  - name: "Local Dashboards - 1"
+  - name: "Services Dashboards"
     orgId: 1
-    folder: "Observability"
+    folder: ""
     type: file
     disableDeletion: false
-    updateIntervalSeconds: 30
-    allowUiUpdates: true
-    options:
-      path: /var/lib/grafana/dashboards
-      foldersFromFilesStructure: true
-  - name: "Local Dashboards - 2"
-    orgId: 2
-    folder: "Observability"
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
-    allowUiUpdates: true
-    options:
-      path: /var/lib/grafana/dashboards
-      foldersFromFilesStructure: true
-  - name: "Services Dashboards - 1"
-    orgId: 1
-    folder: "Observability"
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
-    allowUiUpdates: true
-    options:
-      path: /var/lib/grafana/dashboards
-      foldersFromFilesStructure: true
-  - name: "Services Dashboards - 2"
-    orgId: 2
-    folder: "Observability"
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
+    updateIntervalSeconds: 10
     allowUiUpdates: true
     options:
       path: /var/lib/grafana/dashboards
