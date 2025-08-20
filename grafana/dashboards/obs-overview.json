@@ -1,0 +1,159 @@
+{
+  "__inputs": [
+    { "name": "DS_PROM", "label": "Prometheus (Mimir)", "type": "datasource", "pluginId": "prometheus" },
+    { "name": "DS_LOKI", "label": "Loki", "type": "datasource", "pluginId": "loki" },
+    { "name": "DS_TEMPO", "label": "Tempo", "type": "datasource", "pluginId": "tempo" }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "bargauge", "name": "Bar gauge", "version": "" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
+    { "type": "datasource", "id": "tempo", "name": "Tempo", "version": "1.0.0" }
+  ],
+  "title": "Obs \u203a Stack Overview",
+  "tags": ["observability", "mimir", "loki", "tempo", "alloy", "prometheus"],
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Targets Up",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": "${DS_PROM}",
+      "fieldConfig": { "defaults": { "unit": "none", "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "textMode": "value" },
+      "targets": [
+        { "expr": "sum(up)", "legendFormat": "up", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Samples Ingest (Prometheus\u2192Mimir) /s",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": "${DS_PROM}",
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(rate(prometheus_remote_storage_samples_in_total[5m]))", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Tempo Spans Ingested /s",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": "${DS_PROM}",
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(rate(tempo_distributor_spans_received_total[5m]))", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Loki Ingest Lines /s",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": "${DS_PROM}",
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(rate(loki_distributor_lines_received_total[5m]))", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Docker Logs/sec (All containers)",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": "${DS_LOKI}",
+      "fieldConfig": { "defaults": { "unit": "ops" } },
+      "targets": [
+        {
+          "expr": "sum by (job) (rate({job=\"docker\"}[$__interval]))",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Docker Error Logs/sec",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": "${DS_LOKI}",
+      "fieldConfig": { "defaults": { "unit": "ops" } },
+      "targets": [
+        {
+          "expr": "sum by (job) (rate({job=\"docker\", level=~\"(?i)err|error|fatal\"}[$__interval]))",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Prometheus Remote Write Success Rate",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": "${DS_PROM}",
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2 } },
+      "targets": [
+        {
+          "expr": "sum(rate(prometheus_remote_storage_succeeded_samples_total[5m])) / clamp_min(sum(rate(prometheus_remote_storage_samples_in_total[5m])), 1)",
+          "legendFormat": "success rate",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tempo Ingest/Failures",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": "${DS_PROM}",
+      "targets": [
+        { "expr": "sum(rate(tempo_distributor_spans_received_total[5m]))", "legendFormat": "spans/s", "refId": "A" },
+        { "expr": "sum(rate(tempo_distributor_spans_failed_total[5m]))",   "legendFormat": "failed/s", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "type": "bargauge",
+      "title": "Service Up",
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 5 },
+      "datasource": "${DS_PROM}",
+      "targets": [
+        { "expr": "up{job=~\"grafana|loki|tempo|mimir|prometheus\"}", "legendFormat": "{{job}}", "refId": "A" }
+      ],
+      "options": { "displayMode": "gradient", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "min": 0, "max": 1 } }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "DS_PROM",
+        "label": "Prometheus (Mimir)",
+        "query": "prometheus",
+        "current": { "selected": true, "text": "Mimir (Prometheus)", "value": "Mimir (Prometheus)" }
+      },
+      {
+        "type": "datasource",
+        "name": "DS_LOKI",
+        "label": "Loki",
+        "query": "loki",
+        "current": { "selected": true, "text": "Loki", "value": "Loki" }
+      },
+      {
+        "type": "datasource",
+        "name": "DS_TEMPO",
+        "label": "Tempo",
+        "query": "tempo",
+        "current": { "selected": true, "text": "Tempo", "value": "Tempo" }
+      }
+    ]
+  }
+}
