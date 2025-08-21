@@ -1,0 +1,149 @@
+{
+  "uid": "snkrshop-observability",
+  "title": "SnkrShop-API + Postgres Observability",
+  "tags": ["fastapi", "tempo", "loki", "postgres"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "__inputs": [
+    { "name": "DS_PROM", "label": "Prometheus (Mimir)", "type": "datasource", "pluginId": "prometheus" },
+    { "name": "DS_LOKI", "label": "Loki", "type": "datasource", "pluginId": "loki" },
+    { "name": "DS_TEMPO", "label": "Tempo", "type": "datasource", "pluginId": "tempo" }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "bargauge", "name": "Bar gauge", "version": "" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
+    { "type": "datasource", "id": "tempo", "name": "Tempo", "version": "1.0.0" }
+  ],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "SnkrShop-API Request Rate",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "legendFormat": "{{handler}} {{status_code}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "SnkrShop-API Error Rate (5xx)",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{status=~\"5..\"}[1m])",
+          "legendFormat": "{{handler}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "SnkrShop-API Latency p95",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, handler))",
+          "legendFormat": "{{handler}}"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "SnkrShop-API Logs (Loki)",
+      "datasource": "${DS_LOKI}",
+      "targets": [
+        {
+          "expr": "{job=\"fastapi-backend\"}"
+        }
+      ]
+    },
+    {
+      "type": "traces",
+      "title": "SnkrShop-API Traces (Tempo)",
+      "datasource": "${DS_TEMPO}",
+      "options": {
+        "query": {
+          "queryType": "traceql",
+          "query": "service.name = \"fastapi-backend\""
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "SnkrShop-API - Postgres Query Duration",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "rate(pg_stat_activity_duration_seconds_sum[1m]) / rate(pg_stat_activity_duration_seconds_count[1m])",
+          "legendFormat": "avg duration"
+        }
+      ]
+    },
+    {
+      "type": "traces",
+      "title": "SnkrShop-API - Database Spans (Tempo)",
+      "datasource": "${DS_TEMPO}",
+      "options": {
+        "query": {
+          "queryType": "traceql",
+          "query": "db.system = \"postgresql\""
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Postgres Active Connections",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count{datname=\"sneaker_store\"}",
+          "legendFormat": "connections"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Postgres Transactions per Second",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"sneaker_store\"}[1m])",
+          "legendFormat": "commits"
+        },
+        {
+          "expr": "rate(pg_stat_database_xact_rollback{datname=\"sneaker_store\"}[1m])",
+          "legendFormat": "rollbacks"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Postgres Deadlocks",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "pg_stat_database_deadlocks{datname=\"sneaker_store\"}",
+          "legendFormat": "deadlocks"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Postgres Cache Hit Ratio",
+      "datasource": "${DS_PROM}",
+      "targets": [
+        {
+          "expr": "pg_stat_database_blks_hit{datname=\"sneaker_store\"} / (pg_stat_database_blks_hit{datname=\"sneaker_store\"} + pg_stat_database_blks_read{datname=\"sneaker_store\"})",
+          "legendFormat": "hit ratio"
+        }
+      ]
+    }
+  ]
+}

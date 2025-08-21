@@ -42,8 +42,6 @@ services:
       - -reporting.enabled=false
     ports:
       - "3200:3200"
-      - "4317:4317"
-      - "4318:4318"
     volumes:
       - ./tempo/config:/etc/tempo:ro
       - tempo-data:/var/tempo
@@ -89,6 +87,13 @@ services:
       - loki
       - tempo
       - mimir
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres_exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://admin:admin@snkrshop.homelab.local:5432/sneaker_store?sslmode=disable"
 
 volumes:
   grafana-data:

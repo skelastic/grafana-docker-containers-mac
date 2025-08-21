@@ -1,5 +1,6 @@
 server:
   http_listen_port: 3100
+  grpc_listen_port: 9096
 
 common:
   path_prefix: /var/loki
@@ -27,6 +28,21 @@ schema_config:
         period: 24h
 
 # (TSDB supports structured metadata, so NO limits override needed)
+limits_config:
+  ingestion_rate_strategy: global
+  # Allow really old data (120 days back)
+  max_global_streams_per_user: 0
+  max_concurrent_tail_requests: 20
+  reject_old_samples: false        # ✅ allow old logs
+  reject_old_samples_max_age: 8760h # 365 days, enough for 120d
+  max_line_size: 0
+  ingestion_rate_mb: 256          # default 4 → raise significantly
+  ingestion_burst_size_mb: 512    # allow larger bursts per push
+  retention_period: 2880h          # ✅ 120 days
+  # Extend how far behind logs can be
+  max_query_lookback: 3000h          # ~125 days
+  max_cache_freshness_per_query: 10m
+  creation_grace_period: 300s
 
 ruler:
   rule_path: /tmp/loki/rules
