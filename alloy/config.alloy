@@ -1,14 +1,70 @@
-// ----- LOGS → LOKI (with processing) -----
-discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+// ----- METRICS → MIMIR -----
+prometheus.scrape "stack" {
+  targets = [
+    { __address__ = "grafana:3000", job = "grafana" },
+    { __address__ = "loki:3100",    job = "loki"    },
+    { __address__ = "tempo:3200",   job = "tempo"   },
+    { __address__ = "mimir:9009",   job = "mimir"   },
+  ]
+  metrics_path    = "/metrics"
+  scrape_interval = "10s"
+  forward_to      = [prometheus.remote_write.mimir.receiver]
 }
 
-loki.source.docker "containers" {
-  host    = "unix:///var/run/docker.sock"
-  targets = discovery.docker.containers.targets
-  labels  = { job = "docker" }
-  forward_to = [loki.process.pipeline.receiver]
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir:9009/api/v1/push"
+    headers = { "X-Scope-OrgID" = "SnkrShop" }
+  }
 }
+
+
+
+
+otelcol.exporter.otlp "to_tempo" {
+  client {
+    endpoint = "tempo:55680"
+    tls { insecure = true }
+  }
+}
+
+// ----- TRACES: accept OTLP → forward to Tempo -----
+otelcol.receiver.otlp "ingest" {
+  grpc { endpoint = "0.0.0.0:4317" }
+  http { endpoint = "0.0.0.0:4318" }
+  output {
+    logs = [otelcol.processor.attributes.to_loki_labels.input]
+    traces = [otelcol.exporter.otlp.to_tempo.input]
+  }
+}
+
+otelcol.processor.attributes "to_loki_labels" {
+  action {
+    key    = "loki.attribute.labels"
+    action = "insert"
+    value  = "event, level, trace_id"
+  }
+
+  action {
+    key    = "loki.resource.labels"
+    action = "insert"
+    value  = "service.name"
+  }
+
+  output {
+    logs = [otelcol.exporter.loki.to_loki.input]
+  }
+}
+
+
+otelcol.processor.batch "ingest" {
+  output {
+    traces = [otelcol.exporter.otlp.to_tempo.input]
+  }
+  send_batch_size = 512
+  send_batch_max_size = 1024
+}
+
 
 loki.process "pipeline" {
   forward_to = [loki.write.out.receiver]
@@ -21,44 +77,9 @@ loki.write "out" {
   }
 }
 
-// ----- METRICS → MIMIR -----
-prometheus.scrape "stack" {
-  targets = [
-    { __address__ = "grafana:3000", job = "grafana" },
-    { __address__ = "loki:3100",    job = "loki"    },
-    { __address__ = "tempo:3200",   job = "tempo"   },
-    { __address__ = "mimir:9009",   job = "mimir"   },
-  ]
-  metrics_path    = "/metrics"
-  scrape_interval = "15s"
-  forward_to      = [prometheus.remote_write.mimir.receiver]
+otelcol.exporter.loki "to_loki" {
+  forward_to = [loki.write.out.receiver]
 }
 
-prometheus.remote_write "mimir" {
-  endpoint {
-    url = "http://mimir:9009/api/v1/push"
-    headers = { "X-Scope-OrgID" = "SnkrShop" }
-  }
-}
 
-// ----- TRACES: accept OTLP → forward to Tempo -----
-otelcol.receiver.otlp "ingest" {
-  grpc { endpoint = "0.0.0.0:4317" }
-  http { endpoint = "0.0.0.0:4318" }
-  output { traces = [otelcol.exporter.otlp.to_tempo.input] }
-}
 
-otelcol.exporter.otlp "to_tempo" {
-  client {
-    endpoint = "tempo:55680"
-    tls { insecure = true }
-  }
-}
-
-otelcol.processor.batch "ingest" {
-  output {
-    traces = [otelcol.exporter.otlp.to_tempo.input]
-  }
-  send_batch_size = 512
-  send_batch_max_size = 1024
-}
