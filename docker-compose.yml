@@ -73,7 +73,7 @@ services:
       - tempo
 
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.4.1
     container_name: alloy
     command: ["run", "/etc/alloy/config.alloy"]
     ports:
@@ -90,10 +90,15 @@ services:
   postgres_exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:latest
     container_name: postgres_exporter
+    command: ["--config.file=/etc/postgres_exporter/exporter.yml"]
     ports:
       - "9187:9187"
     environment:
-      DATA_SOURCE_NAME: "postgresql://admin:admin@snkrshop.homelab.local:5432/sneaker_store?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://admin:admin@snkrshop.homelab.local:5432/admin?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres_exporter/postgres_exporter.yml
+    volumes:
+      - ./postgres_exporter:/etc/postgres_exporter:ro
+    restart: unless-stopped
 
 volumes:
   grafana-data:
